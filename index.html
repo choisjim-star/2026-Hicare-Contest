@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>2026 하이케어솔루션 매니저 경진대회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --lg:#A50034; --lg2:#C8003F; --lgdark:#7A0026; --lgsoft:#F9E6EC;
+  --bg:#F4F4F4; --bg2:#FFFFFF; --card:#FFFFFF; --line:#E1E1E1;
+  --text:#1F1F1F; --muted:#6B6B6B; --gray:#A0A0A0;
+  --ok:#1E8E3E; --bad:#D6002F; --warn:#E07A00;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(180deg,#FFFFFF 0%,var(--bg) 100%);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none}
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:8px;background:var(--lg);z-index:100}
+button{font-family:inherit;cursor:pointer;border:none;touch-action:manipulation}
+input,select,textarea{font-family:inherit;user-select:text;-webkit-user-select:text}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+
+/* ---------- Top bar ---------- */
+.topbar{position:fixed;top:8px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:22px 28px;z-index:10}
+.btn-quiz{background:#fff;color:var(--lg);border:3px solid var(--lg);font-size:22px;font-weight:700;padding:16px 28px;border-radius:16px;box-shadow:0 6px 18px rgba(165,0,52,.12);display:flex;align-items:center;gap:10px}
+.btn-quiz:active{transform:scale(.97);background:var(--lgsoft)}
+.btn-quiz:disabled{border-color:var(--line);color:var(--gray);box-shadow:none;cursor:not-allowed;background:#fafafa}
+.top-right{display:flex;gap:10px}
+.icon-btn{width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:22px;display:flex;align-items:center;justify-content:center}
+.icon-btn:active{background:#eee}
+
+/* ---------- Main ---------- */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:110px 24px 40px;text-align:center}
+.badge{display:inline-block;padding:8px 18px;border-radius:999px;background:var(--lgsoft);color:var(--lg);font-weight:700;letter-spacing:.08em;font-size:16px;margin-bottom:18px}
+.title{font-size:clamp(34px,5.5vw,72px);font-weight:900;line-height:1.15;letter-spacing:-.02em;color:var(--text)}
+.title em{font-style:normal;color:var(--lg)}
+.subtitle{color:var(--muted);font-size:clamp(16px,1.8vw,22px);margin-top:12px}
+.name-input{margin-top:28px;background:#fff;border:2px solid var(--line);color:var(--text);font-size:22px;padding:14px 22px;border-radius:14px;width:min(420px,90vw);text-align:center;outline:none}
+.name-input:focus{border-color:var(--lg)}
+.name-input:disabled{background:#f7f7f7;color:var(--muted)}
+.timer{font-size:clamp(72px,13vw,180px);font-weight:700;margin:26px 0 8px;letter-spacing:-.03em;line-height:1;color:#3a3a3a}
+.timer .cs{font-size:.45em;color:var(--gray)}
+.timer.running{color:var(--lg)}
+.status-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:26px;min-height:40px}
+.chip{padding:8px 16px;border-radius:999px;background:#EBEBEB;color:var(--muted);font-size:17px;font-weight:500}
+.chip.done{background:#E6F4EA;color:var(--ok)}
+.chip.live{background:var(--lgsoft);color:var(--lg)}
+.btn-start{width:min(360px,80vw);height:120px;border-radius:28px;font-size:36px;font-weight:900;color:#fff;background:var(--lg);box-shadow:0 14px 36px rgba(165,0,52,.35);animation:pulse 2s infinite}
+.btn-start:active{transform:scale(.97);background:var(--lgdark)}
+@keyframes pulse{0%,100%{box-shadow:0 14px 36px rgba(165,0,52,.30)}50%{box-shadow:0 14px 56px rgba(165,0,52,.55)}}
+.btn-submit{width:min(360px,80vw);height:100px;border-radius:24px;font-size:32px;font-weight:900;color:#fff;background:#3a3a3a;box-shadow:0 12px 30px rgba(0,0,0,.2)}
+.btn-submit:active{transform:scale(.97);background:#1f1f1f}
+
+/* ---------- Quiz overlay ---------- */
+.quiz{position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;flex-direction:column;padding:32px 32px 32px}
+.quiz::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:var(--lg)}
+.quiz-head{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.quiz-count{font-size:24px;font-weight:700;color:var(--muted)}
+.quiz-count b{color:var(--lg);font-size:32px}
+.quiz-clock{font-size:64px;font-weight:700;color:var(--text)}
+.quiz-clock.warn{color:var(--warn)}
+.quiz-clock.danger{color:var(--lg);animation:blink .5s infinite alternate}
+@keyframes blink{to{opacity:.4}}
+.quiz-main-timer{font-size:18px;color:var(--muted)}
+.bar{height:12px;background:#E3E3E3;border-radius:99px;overflow:hidden;margin:14px 0 20px}
+.bar > i{display:block;height:100%;background:var(--lg);transition:width .1s linear}
+.dots{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.dots span{width:14px;height:14px;border-radius:50%;background:#D5D5D5}
+.dots span.cur{background:var(--lg);transform:scale(1.25)}
+.dots span.ans{background:#D98AA3}
+.q-text{flex:0 0 auto;font-size:clamp(26px,3.4vw,44px);font-weight:700;line-height:1.4;text-align:center;padding:10px 20px 28px;min-height:140px;display:flex;align-items:center;justify-content:center;word-break:keep-all}
+.opts{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:18px;max-height:520px}
+.opt{background:#fff;border:3px solid var(--line);border-radius:22px;color:var(--text);font-size:clamp(20px,2.4vw,30px);font-weight:500;padding:18px 24px;display:flex;align-items:center;gap:18px;text-align:left;word-break:keep-all;transition:transform .08s;box-shadow:0 4px 12px rgba(0,0,0,.04)}
+.opt:active{transform:scale(.98)}
+.opt .n{flex:0 0 auto;width:52px;height:52px;border-radius:50%;background:#F0F0F0;color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px}
+.opt.sel{border-color:var(--lg);background:var(--lgsoft)}
+.opt.sel .n{background:var(--lg);color:#fff}
+.opts.ox .opt{justify-content:center;font-size:clamp(60px,9vw,120px);font-weight:900}
+.opts.ox .opt .n{display:none}
+.opts.ox .opt:first-child{color:#1565C0}
+.opts.ox .opt:last-child{color:var(--lg)}
+.opts.locked .opt{opacity:.35;pointer-events:none}
+
+/* ---------- Result ---------- */
+.result-label{color:var(--muted);font-size:22px;font-weight:500;margin-bottom:6px}
+.result-grid{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;margin:30px 0}
+.r-card{background:#fff;border:1px solid var(--line);border-radius:28px;padding:30px 48px;min-width:320px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+.r-card .v{font-size:clamp(56px,8vw,110px);font-weight:700;line-height:1.1;color:#3a3a3a}
+.r-card .v small{font-size:.4em;color:var(--gray)}
+.r-card.score{border:3px solid var(--lg)}
+.r-card.score .v{color:var(--lg)}
+.review{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:900px;margin-bottom:20px}
+.review div{width:64px;padding:8px 0;border-radius:12px;font-weight:700;font-size:16px}
+.review .o{background:#E6F4EA;color:var(--ok)}
+.review .x{background:var(--lgsoft);color:var(--lg)}
+.btn-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn-big{min-width:280px;height:88px;border-radius:22px;font-size:28px;font-weight:900;color:#fff;background:var(--lg);margin-top:14px;padding:0 30px}
+.btn-big:active{background:var(--lgdark)}
+.btn-big.yellow{background:#3a3a3a}
+.btn-big.ghost{background:#fff;color:var(--text);border:2px solid var(--line)}
+
+/* ---------- Modal ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-top:8px solid var(--lg);border-radius:24px;padding:36px;max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{font-size:30px;margin-bottom:12px}
+.modal p{color:var(--muted);font-size:20px;line-height:1.6}
+.modal .btn-row{margin-top:26px}
+.modal .btn-big{min-width:180px;height:72px;font-size:24px}
+.pin{font-size:34px;letter-spacing:.4em;text-align:center;width:220px;padding:12px;border-radius:14px;border:2px solid var(--line);background:#fafafa;color:var(--text);margin-top:16px;outline:none}
+.pin:focus{border-color:var(--lg)}
+
+/* ---------- Admin ---------- */
+.admin{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;user-select:text;-webkit-user-select:text}
+.admin-head{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:var(--lg);color:#fff}
+.admin-head h2{font-size:22px}
+.admin-head .sbtn{background:rgba(255,255,255,.15);border-color:transparent;color:#fff}
+.tabs{display:flex;gap:6px;padding:12px 24px 0;border-bottom:1px solid var(--line);background:#fff}
+.tab{background:none;color:var(--muted);font-size:17px;font-weight:700;padding:12px 18px;border-bottom:3px solid transparent}
+.tab.on{color:var(--lg);border-color:var(--lg)}
+.admin-body{flex:1;overflow:auto;padding:22px 24px 60px}
+.sbtn{background:#fff;color:var(--text);border:1px solid var(--line);padding:10px 16px;border-radius:10px;font-size:15px;font-weight:500}
+.sbtn.pri{background:var(--lg);border-color:var(--lg);color:#fff}
+.sbtn.blue{background:#3a3a3a;border-color:#3a3a3a;color:#fff}
+.sbtn.danger{color:var(--bad)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.help{background:#fff;border:1px solid var(--line);border-left:5px solid var(--lg);border-radius:14px;padding:16px 18px;color:var(--muted);font-size:14.5px;line-height:1.75;margin-bottom:18px}
+.help b{color:var(--text)}
+.help code{background:var(--lgsoft);padding:1px 6px;border-radius:5px;color:var(--lg)}
+.q-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.q-item .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.q-item .num{font-weight:900;color:var(--lg);width:34px;flex:0 0 auto}
+.q-item input[type=text],.field input,.field select{flex:1;background:#fafafa;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:9px;font-size:15px;outline:none;min-width:0}
+.q-item input:focus,.field input:focus{border-color:var(--lg)}
+.q-item .opts-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-left:42px}
+.q-item .opts-edit label{display:flex;gap:6px;align-items:center}
+.q-item .opts-edit input[type=radio]{width:20px;height:20px;accent-color:var(--lg)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;max-width:520px}
+.field > span{font-weight:700;font-size:15px}
+.field small{color:var(--muted)}
+.field label.ck{display:flex;gap:8px;align-items:center;font-weight:500}
+.field input[type=checkbox]{accent-color:var(--lg);width:18px;height:18px}
+table{width:100%;border-collapse:collapse;font-size:15px;background:#fff}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:500;background:#fafafa}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1f1f1f;color:#fff;padding:14px 24px;border-radius:12px;font-weight:700;font-size:18px;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+@media (max-width:760px){
+  .opts{grid-template-columns:1fr}
+  .topbar{padding:14px}
+  .btn-quiz{font-size:17px;padding:12px 18px}
+  .q-item .opts-edit{grid-template-columns:1fr;padding-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <button class="btn-quiz" id="btnQuiz" onclick="startQuiz()">📝 퀴즈 풀이 시작</button>
+  <div class="top-right">
+    <button class="icon-btn" onclick="toggleFS()" title="전체화면">⛶</button>
+    <button class="icon-btn" onclick="openPin()" title="관리자">⚙</button>
+  </div>
+</div>
+
+<!-- Main screen -->
+<section class="screen" id="scrMain">
+  <div class="badge">TIME ATTACK</div>
+  <h1 class="title" id="mainTitle">2026년 <em>하이케어솔루션</em><br>매니저 경진대회</h1>
+  <p class="subtitle" id="mainSub">가장 빠르고 정확한 매니저에 도전하세요!</p>
+  <input class="name-input" id="nameInput" placeholder="참가자 이름 (선택)" maxlength="20">
+  <div class="timer mono" id="mainTimer">00:00<span class="cs">.00</span></div>
+  <div class="status-row" id="statusRow"></div>
+  <button class="btn-start" id="btnStart" onclick="startMain()">▶ 타이머 시작</button>
+  <button class="btn-submit hidden" id="btnSubmit" onclick="askSubmit()">✔ 최종 제출</button>
+</section>
+
+<!-- Result screen -->
+<section class="screen hidden" id="scrResult">
+  <div class="badge">RESULT</div>
+  <h1 class="title" id="resName">경기 종료</h1>
+  <div class="result-grid">
+    <div class="r-card"><div class="result-label">⏱ 최종 기록</div><div class="v mono" id="resTime">00:00.00</div></div>
+    <div class="r-card score"><div class="result-label">📝 퀴즈 점수</div><div class="v mono" id="resScore">0<small> / 10</small></div></div>
+  </div>
+  <div class="review hidden" id="resReview"></div>
+  <div class="btn-row">
+    <button class="btn-big ghost" onclick="toggleReview()">정답 확인</button>
+    <button class="btn-big" onclick="resetAll()">다음 참가자 ▶</button>
+  </div>
+</section>
+
+<!-- Quiz overlay -->
+<section class="quiz hidden" id="quiz">
+  <div class="quiz-head">
+    <div class="quiz-count">문제 <b id="qNum">1</b> / <span id="qTotal">10</span></div>
+    <div class="quiz-clock mono" id="qClock">60</div>
+    <div class="quiz-main-timer">전체 기록 <span class="mono" id="qMainTimer">00:00.00</span></div>
+  </div>
+  <div class="bar"><i id="qBar" style="width:100%"></i></div>
+  <div class="dots" id="qDots"></div>
+  <div class="q-text" id="qText"></div>
+  <div class="opts" id="qOpts"></div>
+</section>
+
+<!-- Modal -->
+<div class="modal-bg hidden" id="modal"><div class="modal" id="modalBox"></div></div>
+
+<!-- Admin -->
+<section class="admin hidden" id="admin">
+  <div class="admin-head">
+    <h2>⚙ 관리자 설정</h2>
+    <button class="sbtn" onclick="closeAdmin()">닫기 ✕</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-t="q" onclick="adminTab('q')">문제 관리</button>
+    <button class="tab" data-t="s" onclick="adminTab('s')">대회 설정</button>
+    <button class="tab" data-t="r" onclick="adminTab('r')">참가 기록</button>
+  </div>
+  <div class="admin-body" id="adminBody"></div>
+</section>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.json" class="hidden" onchange="onFile(event)">
+
+<script>
+/* ================= Storage ================= */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+const DEFAULT_QUESTIONS = [
+  {q:"하이케어솔루션은 어느 기업의 케어솔루션 생태계에서 서비스를 제공하나요?", o:["삼성전자","LG전자","SK매직","코웨이"], a:1},
+  {q:"정기 방문 시 고객 댁에 들어가기 전 가장 먼저 해야 할 행동은?", o:["바로 제품 점검","인사 및 방문 목적 안내","계약서 작성","사진 촬영"], a:1},
+  {q:"정수기 필터는 교체 주기와 관계없이 고객이 원할 때만 교체한다.", o:["O","X"], a:1},
+  {q:"고객 불만 응대 시 가장 먼저 해야 할 것은?", o:["변명하기","경청과 공감","상사 연결","규정 설명"], a:1},
+  {q:"방문 후 작업 완료 보고는 언제 하는 것이 가장 바람직한가요?", o:["다음 날","일주일 후","방문 직후","월말"], a:2},
+  {q:"케어 서비스 중 고객의 개인정보는 동의 없이 제3자에게 공유할 수 있다.", o:["O","X"], a:1},
+  {q:"공기청정기 관리 시 주로 점검하는 부품은?", o:["필터","냉매","드럼","노즐"], a:0},
+  {q:"방문 시 실내화(덧신) 착용은 고객 배려의 기본 매너이다.", o:["O","X"], a:0},
+  {q:"구독 서비스의 장점으로 가장 거리가 먼 것은?", o:["초기 비용 부담 완화","정기 전문 관리","소유권 즉시 이전","사후관리 편의"], a:2},
+  {q:"서비스 종료 시 고객에게 안내해야 할 내용으로 적절한 것은?", o:["다음 방문 일정","경쟁사 제품","개인 연락처만","없음"], a:0}
+];
+const DEFAULT_SETTINGS = {
+  title:"2026년 하이케어솔루션\n매니저 경진대회",
+  sub:"가장 빠르고 정확한 매니저에 도전하세요!",
+  quizSec:60, quizCount:10, shuffle:false, shuffleOpts:false, pin:"1234",
+  confirmSubmit:true
+};
+
+let questions = LS.get('hc_questions', DEFAULT_QUESTIONS);
+let settings  = Object.assign({}, DEFAULT_SETTINGS, LS.get('hc_settings', {}));
+let records   = LS.get('hc_records', []);
+
+/* ================= State ================= */
+const S = {
+  running:false, startAt:0, elapsed:0, raf:null,
+  quizState:'none', // none | live | done
+  quizSet:[], quizIdx:0, answers:[], quizStart:0, quizTimer:null
+};
+
+const $ = id => document.getElementById(id);
+
+function fmt(ms){
+  const t = Math.max(0, ms);
+  const m = Math.floor(t/60000), s = Math.floor(t%60000/1000), cs = Math.floor(t%1000/10);
+  const h = Math.floor(m/60);
+  const mm = h ? `${h}:${String(m%60).padStart(2,'0')}` : String(m).padStart(2,'0');
+  return {main:`${mm}:${String(s).padStart(2,'0')}`, cs:`.${String(cs).padStart(2,'0')}`};
+}
+function fmtStr(ms){ const f = fmt(ms); return f.main + f.cs; }
+
+function applyTexts(){
+  const t = settings.title.replace(/</g,'&lt;');
+  const lines = t.split('\n');
+  $('mainTitle').innerHTML = lines.map(l => l.replace('하이케어솔루션','<em>하이케어솔루션</em>')).join('<br>');
+  $('mainSub').textContent = settings.sub;
+  document.title = settings.title.replace(/\n/g,' ');
+}
+
+/* ================= Main timer ================= */
+function startMain(){
+  if (S.running) return;
+  S.running = true;
+  S.startAt = performance.now();
+  $('mainTimer').classList.add('running');
+  $('btnStart').classList.add('hidden');
+  $('btnSubmit').classList.remove('hidden');
+  $('nameInput').disabled = true;
+  tick();
+  renderStatus();
+  requestWakeLock();
+}
+function tick(){
+  if (!S.running) return;
+  S.elapsed = performance.now() - S.startAt;
+  const f = fmt(S.elapsed);
+  $('mainTimer').innerHTML = `${f.main}<span class="cs">${f.cs}</span>`;
+  $('qMainTimer').textContent = f.main + f.cs;
+  S.raf = requestAnimationFrame(tick);
+}
+function stopMain(){
+  if (!S.running) return;
+  S.elapsed = performance.now() - S.startAt;
+  S.running = false;
+  cancelAnimationFrame(S.raf);
+}
+function renderStatus(){
+  const row = $('statusRow');
+  if (!S.running && S.quizState==='none'){ row.innerHTML=''; return; }
+  let chip = '';
+  if (S.quizState==='none') chip = `<span class="chip">📝 퀴즈 미응시</span>`;
+  else if (S.quizState==='live') chip = `<span class="chip live">📝 퀴즈 진행 중</span>`;
+  else chip = `<span class="chip done">✔ 퀴즈 완료 (${S.answers.filter(a=>a!==null).length}/${S.quizSet.length} 응답)</span>`;
+  row.innerHTML = `<span class="chip live">⏱ 기록 측정 중</span>${chip}`;
+  $('btnQuiz').disabled = S.quizState!=='none';
+}
+
+/* ================= Quiz ================= */
+function shuffleArr(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function buildQuizSet(){
+  let pool = questions.filter(q => q.q && q.o && q.o.filter(Boolean).length>=2);
+  if (settings.shuffle) pool = shuffleArr(pool);
+  pool = pool.slice(0, settings.quizCount);
+  return pool.map(q => {
+    const opts = q.o.map((t,i)=>({t, correct:i===q.a})).filter(x=>x.t!=='' && x.t!=null);
+    const isOX = opts.length===2 && opts.every(x=>/^[OX]$/i.test(String(x.t).trim()));
+    return {q:q.q, opts: (settings.shuffleOpts && !isOX) ? shuffleArr(opts) : opts, ox:isOX};
+  });
+}
+
+function startQuiz(){
+  if (S.quizState!=='none') return;
+  const set = buildQuizSet();
+  if (!set.length){ toast('등록된 문제가 없습니다. 관리자 설정에서 문제를 등록하세요.'); return; }
+  if (!S.running) startMain();
+  S.quizSet = set; S.quizIdx = 0; S.answers = new Array(set.length).fill(null);
+  S.quizState = 'live';
+  $('qTotal').textContent = set.length;
+  $('quiz').classList.remove('hidden');
+  renderQuestion();
+  S.quizStart = performance.now();
+  clearInterval(S.quizTimer);
+  S.quizTimer = setInterval(quizTick, 50);
+  quizTick();
+  renderStatus();
+}
+function quizTick(){
+  const total = settings.quizSec*1000;
+  const left = total - (performance.now() - S.quizStart);
+  const sec = Math.ceil(Math.max(0,left)/1000);
+  const c = $('qClock');
+  c.textContent = sec;
+  c.className = 'quiz-clock mono' + (sec<=5 ? ' danger' : sec<=15 ? ' warn' : '');
+  const pct = Math.max(0,left)/total*100;
+  const bar = $('qBar');
+  bar.style.width = pct+'%';
+  if (left<=0) endQuiz('timeout');
+}
+function renderQuestion(){
+  const q = S.quizSet[S.quizIdx];
+  $('qNum').textContent = S.quizIdx+1;
+  $('qText').textContent = q.q;
+  $('qDots').innerHTML = S.quizSet.map((_,i)=>`<span class="${i===S.quizIdx?'cur':(S.answers[i]!==null?'ans':'')}"></span>`).join('');
+  const box = $('qOpts');
+  box.className = 'opts' + (q.ox ? ' ox' : '') + (q.opts.length===2 ? ' two':'');
+  box.innerHTML = q.opts.map((o,i)=>`<button class="opt" onclick="choose(${i})"><span class="n">${i+1}</span><span>${escapeHtml(o.t)}</span></button>`).join('');
+}
+function choose(i){
+  if (S.quizState!=='live') return;
+  S.answers[S.quizIdx] = i;
+  const btns = $('qOpts').children;
+  btns[i].classList.add('sel');
+  $('qOpts').classList.add('locked');
+  btns[i].style.opacity = 1;
+  setTimeout(()=>{
+    if (S.quizState!=='live') return;
+    $('qOpts').classList.remove('locked');
+    if (S.quizIdx < S.quizSet.length-1){ S.quizIdx++; renderQuestion(); }
+    else endQuiz('complete');
+  }, 220);
+}
+function endQuiz(reason){
+  if (S.quizState!=='live') return;
+  S.quizState = 'done';
+  clearInterval(S.quizTimer);
+  $('qOpts').classList.add('locked');
+  const answered = S.answers.filter(a=>a!==null).length;
+  if (reason==='timeout'){ $('qClock').textContent='0'; $('qBar').style.width='0%'; }
+  setTimeout(()=>{
+    closeQuiz();
+    renderStatus();
+    toast(reason==='timeout'
+      ? `⏰ 퀴즈 시간 종료 (${answered}/${S.quizSet.length} 응답) — 경기를 계속하세요`
+      : `✔ 퀴즈 완료 — 경기를 계속하세요`);
+  }, reason==='timeout' ? 600 : 150);
+}
+function closeQuiz(){ $('quiz').classList.add('hidden'); }
+function score(){
+  return S.quizSet.reduce((s,q,i)=> s + (S.answers[i]!==null && q.opts[S.answers[i]].correct ? 1 : 0), 0);
+}
+
+/* ================= Submit / Result ================= */
+function askSubmit(){
+  if (!S.running){ return; }
+  if (S.quizState==='live'){
+    showModal(`<h3>퀴즈 진행 중</h3><p>퀴즈 시간이 끝난 뒤 최종 제출할 수 있습니다.</p><div class="btn-row"><button class="btn-big" onclick="hideModal()">확인</button></div>`);
+    return;
+  }
+  if (!settings.confirmSubmit){ finalSubmit(); return; }
+  const warn = S.quizState==='none' ? `<p style="color:var(--warn);margin-top:10px">⚠ 아직 퀴즈를 풀지 않았습니다. 퀴즈 점수는 0점 처리됩니다.</p>` : '';
+  showModal(`<h3>최종 제출하시겠습니까?</h3><p>제출하면 타이머가 멈추고 기록이 확정됩니다.</p>${warn}
+    <div class="btn-row"><button class="btn-big ghost" onclick="hideModal()">취소</button><button class="btn-big yellow" onclick="finalSubmit()">제출</button></div>`);
+}
+function finalSubmit(){
+  stopMain();
+  hideModal();
+  clearInterval(S.quizTimer);
+  $('quiz').classList.add('hidden');
+  const total = S.quizSet.length || settings.quizCount;
+  const sc = S.quizSet.length ? score() : 0;
+  const name = $('nameInput').value.trim();
+  $('resName').textContent = name ? `${name} 님 경기 종료` : '경기 종료';
+  $('resTime').textContent = fmtStr(S.elapsed);
+  $('resScore').innerHTML = `${sc}<small> / ${total}</small>`;
+  $('resReview').innerHTML = S.quizSet.map((q,i)=>{
+    const ok = S.answers[i]!==null && q.opts[S.answers[i]].correct;
+    return `<div class="${ok?'o':'x'}">${i+1}번 ${ok?'O':'X'}</div>`;
+  }).join('');
+  $('resReview').classList.add('hidden');
+  records.unshift({name:name||'(이름 없음)', time:S.elapsed, score:sc, total, at:new Date().toLocaleString('ko-KR')});
+  LS.set('hc_records', records);
+  $('scrMain').classList.add('hidden');
+  $('scrResult').classList.remove('hidden');
+  $('btnQuiz').style.visibility='hidden';
+}
+function toggleReview(){ $('resReview').classList.toggle('hidden'); }
+function resetAll(){
+  stopMain();
+  clearInterval(S.quizTimer);
+  Object.assign(S,{running:false,startAt:0,elapsed:0,quizState:'none',quizSet:[],quizIdx:0,answers:[]});
+  $('mainTimer').innerHTML = `00:00<span class="cs">.00</span>`;
+  $('mainTimer').classList.remove('running');
+  $('btnStart').classList.remove('hidden');
+  $('btnSubmit').classList.add('hidden');
+  $('nameInput').disabled = false; $('nameInput').value = '';
+  $('scrResult').classList.add('hidden');
+  $('scrMain').classList.remove('hidden');
+  $('quiz').classList.add('hidden');
+  $('btnQuiz').style.visibility='';
+  $('btnQuiz').disabled = false;
+  renderStatus();
+}
+
+/* ================= Modal / toast ================= */
+function showModal(html){ $('modalBox').innerHTML = html; $('modal').classList.remove('hidden'); }
+function hideModal(){ $('modal').classList.add('hidden'); }
+function toast(msg){
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= Fullscreen / wake lock ================= */
+function toggleFS(){
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(()=>{});
+  else document.exitFullscreen?.();
+}
+let wakeLock = null;
+async function requestWakeLock(){ try{ wakeLock = await navigator.wakeLock?.request('screen'); }catch(e){} }
+
+/* ================= Admin ================= */
+function openPin(){
+  if (S.running || S.quizState==='live'){ toast('경기 진행 중에는 관리자 설정을 열 수 없습니다.'); return; }
+  showModal(`<h3>관리자 확인</h3><p>관리자 PIN을 입력하세요.</p>
+    <input class="pin mono" id="pinIn" type="password" inputmode="numeric" maxlength="8" onkeydown="if(event.key==='Enter')checkPin()">
+    <div class="btn-row"><button class="btn-big ghost" onclick="hideModal()">취소</button><button class="btn-big" onclick="checkPin()">확인</button></div>`);
+  setTimeout(()=>$('pinIn').focus(), 50);
+}
+function checkPin(){
+  if ($('pinIn').value === String(settings.pin)){ hideModal(); openAdmin(); }
+  else { $('pinIn').value=''; toast('PIN이 올바르지 않습니다.'); }
+}
+let draft = [];
+function openAdmin(){
+  draft = JSON.parse(JSON.stringify(questions));
+  $('admin').classList.remove('hidden');
+  adminTab('q');
+}
+function closeAdmin(){ $('admin').classList.add('hidden'); applyTexts(); }
+function adminTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  if (t==='q') renderQAdmin();
+  if (t==='s') renderSAdmin();
+  if (t==='r') renderRAdmin();
+}
+
+function renderQAdmin(){
+  const b = $('adminBody');
+  b.innerHTML = `
+  <div class="help">
+    <b>📤 문제 업로드 방법</b><br>
+    ① <b>엑셀 양식 다운로드</b> → 양식에 문제 입력 → <b>파일 업로드</b> (xlsx / csv / json 지원)<br>
+    ② 또는 아래 목록에서 직접 입력·수정 후 <b>저장</b><br>
+    · 열 구성: <code>문제</code> <code>보기1</code> <code>보기2</code> <code>보기3</code> <code>보기4</code> <code>정답</code><br>
+    · 정답은 <b>보기 번호(1~4)</b>로 입력 (보기 내용을 그대로 적어도 인식됩니다)<br>
+    · O/X 문제: 보기1에 <code>O</code>, 보기2에 <code>X</code>, 보기3·4는 비움 → 정답 1(O) 또는 2(X)<br>
+    · 문제가 ${settings.quizCount}개보다 많으면 앞에서부터 ${settings.quizCount}개 출제 (대회 설정에서 '랜덤 출제' 가능)<br>
+    · 문제는 이 기기의 브라우저에 저장됩니다. 대회용 터치스크린 기기에서 등록하세요.
+  </div>
+  <div class="toolbar">
+    <button class="sbtn blue" onclick="downloadTemplate()">📥 엑셀 양식 다운로드</button>
+    <button class="sbtn blue" onclick="$('fileInput').click()">📤 파일 업로드</button>
+    <button class="sbtn" onclick="exportQuestions()">현재 문제 엑셀로 내보내기</button>
+    <span style="flex:1"></span>
+    <button class="sbtn" onclick="addQ()">+ 문제 추가</button>
+    <button class="sbtn danger" onclick="if(confirmInline(this))resetQ()">예시 문제로 초기화</button>
+    <button class="sbtn pri" onclick="saveQ()">💾 저장</button>
+  </div>
+  <div style="color:var(--muted);margin-bottom:10px">총 <b style="color:var(--text)">${draft.length}</b>문항 · 출제 ${Math.min(draft.length, settings.quizCount)}문항</div>
+  <div id="qList">${draft.map((q,i)=>qItemHtml(q,i)).join('')}</div>`;
+}
+function qItemHtml(q,i){
+  const opts = [0,1,2,3].map(k=>`
+    <label><input type="radio" name="a${i}" ${q.a===k?'checked':''} onchange="draft[${i}].a=${k}" title="정답">
+    <input type="text" placeholder="보기${k+1}${k>=2?' (선택)':''}" value="${escapeHtml(q.o[k]??'')}" oninput="draft[${i}].o[${k}]=this.value"></label>`).join('');
+  return `<div class="q-item">
+    <div class="row"><span class="num">${i+1}</span>
+      <input type="text" placeholder="문제 내용" value="${escapeHtml(q.q)}" oninput="draft[${i}].q=this.value">
+      <button class="sbtn" onclick="moveQ(${i},-1)">▲</button><button class="sbtn" onclick="moveQ(${i},1)">▼</button>
+      <button class="sbtn danger" onclick="delQ(${i})">삭제</button></div>
+    <div class="opts-edit">${opts}</div>
+  </div>`;
+}
+function confirmInline(btn){
+  if (btn.dataset.c){ return true; }
+  btn.dataset.c='1'; const t=btn.textContent; btn.textContent='한 번 더 누르면 실행';
+  setTimeout(()=>{btn.dataset.c='';btn.textContent=t;},2500); return false;
+}
+function addQ(){ draft.push({q:'',o:['','','',''],a:0}); renderQAdmin(); $('adminBody').scrollTop = 1e9; }
+function delQ(i){ draft.splice(i,1); renderQAdmin(); }
+function moveQ(i,d){ const j=i+d; if(j<0||j>=draft.length)return; [draft[i],draft[j]]=[draft[j],draft[i]]; renderQAdmin(); }
+function resetQ(){ draft = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS)); renderQAdmin(); toast('예시 문제로 바뀌었습니다. 저장을 눌러 적용하세요.'); }
+function saveQ(){
+  const clean = draft.map(q=>({q:(q.q||'').trim(), o:[0,1,2,3].map(k=>(q.o[k]??'').toString().trim()), a:q.a|0}));
+  const bad = clean.findIndex(q=> !q.q || q.o.filter(Boolean).length<2 || !q.o[q.a]);
+  if (bad>=0){ toast(`${bad+1}번 문제를 확인하세요 (문제·보기 2개 이상·정답 보기 필요)`); return; }
+  questions = clean; LS.set('hc_questions', questions);
+  draft = JSON.parse(JSON.stringify(questions));
+  toast(`✅ ${questions.length}문항 저장 완료`);
+  renderQAdmin();
+}
+
+/* ---- file import/export ---- */
+function rowsToQuestions(rows){
+  // rows: array of arrays; first row may be header
+  const out = [];
+  rows.forEach((r,idx)=>{
+    if (!r || !r.length) return;
+    const cells = r.map(c=> c==null ? '' : String(c).trim());
+    if (idx===0 && /문제|question/i.test(cells[0])) return;
+    if (!cells[0]) return;
+    const o = [cells[1]||'',cells[2]||'',cells[3]||'',cells[4]||''];
+    let ans = cells[5]||'';
+    let a = -1;
+    if (/^[1-4]$/.test(ans)) a = +ans-1;
+    else {
+      a = o.findIndex(x=>x && x.toLowerCase()===ans.toLowerCase());
+      if (a<0 && /^[①②③④]$/.test(ans)) a = '①②③④'.indexOf(ans);
+    }
+    if (a<0) a = 0;
+    out.push({q:cells[0], o, a});
+  });
+  return out;
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', q=false;
+  for (let i=0;i<text.length;i++){
+    const ch=text[i];
+    if (q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if (ch==='"') q=true;
+    else if (ch===','){ row.push(cur); cur=''; }
+    else if (ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n')i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+    else cur+=ch;
+  }
+  if (cur||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function onFile(e){
+  const f = e.target.files[0]; e.target.value='';
+  if (!f) return;
+  const name = f.name.toLowerCase();
+  const reader = new FileReader();
+  const done = qs => {
+    if (!qs.length){ toast('불러온 문제가 없습니다. 양식을 확인하세요.'); return; }
+    draft = qs; renderQAdmin();
+    toast(`📤 ${qs.length}문항을 불러왔습니다. 확인 후 [저장]을 누르세요.`);
+  };
+  if (name.endsWith('.json')){
+    reader.onload = () => {
+      try{
+        const d = JSON.parse(reader.result);
+        const arr = Array.isArray(d) ? d : d.questions;
+        done(arr.map(x=>{
+          if (Array.isArray(x)) return rowsToQuestions([x])[0];
+          const o = x.o || x.options || [x['보기1'],x['보기2'],x['보기3'],x['보기4']];
+          let a = x.a ?? x.answer ?? x['정답'];
+          if (typeof a==='string' && /^[1-4]$/.test(a)) a = +a-1;
+          else if (typeof a==='number' && !('a' in x)) a = a-1;
+          return {q:x.q||x.question||x['문제'], o:[0,1,2,3].map(k=>o[k]??''), a:a|0};
+        }).filter(q=>q && q.q));
+      }catch(err){ toast('JSON 형식 오류'); }
+    };
+    reader.readAsText(f, 'utf-8');
+  } else if (name.endsWith('.csv')){
+    reader.onload = () => { let t = reader.result.replace(/^﻿/,''); done(rowsToQuestions(parseCSV(t))); };
+    reader.readAsText(f, 'utf-8');
+  } else {
+    if (typeof XLSX==='undefined'){ toast('엑셀 라이브러리를 불러오지 못했습니다. CSV로 업로드해 주세요.'); return; }
+    reader.onload = () => {
+      const wb = XLSX.read(new Uint8Array(reader.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      done(rowsToQuestions(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})));
+    };
+    reader.readAsArrayBuffer(f);
+  }
+}
+function questionsToRows(qs){
+  return [['문제','보기1','보기2','보기3','보기4','정답(번호)'], ...qs.map(q=>[q.q, q.o[0]||'', q.o[1]||'', q.o[2]||'', q.o[3]||'', (q.a|0)+1])];
+}
+function downloadRows(rows, filename){
+  if (typeof XLSX!=='undefined'){
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:60},{wch:18},{wch:18},{wch:18},{wch:18},{wch:12}];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '문제');
+    XLSX.writeFile(wb, filename + '.xlsx');
+  } else {
+    const csv = '﻿' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = filename + '.csv'; a.click();
+  }
+}
+function downloadTemplate(){
+  downloadRows(questionsToRows([
+    {q:'(예시) 4지선다 문제를 입력하세요', o:['보기 A','보기 B','보기 C','보기 D'], a:1},
+    {q:'(예시) O/X 문제를 입력하세요', o:['O','X','',''], a:0},
+    ...DEFAULT_QUESTIONS.slice(0,3)
+  ]), '경진대회_퀴즈_양식');
+}
+function exportQuestions(){ downloadRows(questionsToRows(draft), '경진대회_퀴즈_문제'); }
+
+/* ---- settings ---- */
+function renderSAdmin(){
+  $('adminBody').innerHTML = `
+  <div class="field"><span>대회 제목</span><small>줄바꿈은 '/' 로 구분</small>
+    <input id="sTitle" value="${escapeHtml(settings.title.replace(/\n/g,' / '))}"></div>
+  <div class="field"><span>부제</span><input id="sSub" value="${escapeHtml(settings.sub)}"></div>
+  <div class="field"><span>퀴즈 제한 시간 (초)</span><input id="sSec" type="number" min="10" max="600" value="${settings.quizSec}"></div>
+  <div class="field"><span>출제 문항 수</span><input id="sCnt" type="number" min="1" max="50" value="${settings.quizCount}"></div>
+  <div class="field"><label class="ck"><input type="checkbox" id="sShuf" ${settings.shuffle?'checked':''}> 문제 랜덤 출제 (등록된 문제 중 무작위 추출)</label>
+    <label class="ck"><input type="checkbox" id="sShufO" ${settings.shuffleOpts?'checked':''}> 보기 순서 섞기 (O/X 제외)</label>
+    <label class="ck"><input type="checkbox" id="sConf" ${settings.confirmSubmit?'checked':''}> 최종 제출 시 확인창 표시</label></div>
+  <div class="field"><span>관리자 PIN</span><input id="sPin" value="${escapeHtml(settings.pin)}" maxlength="8"></div>
+  <button class="sbtn pri" onclick="saveS()">💾 설정 저장</button>`;
+}
+function saveS(){
+  settings.title = $('sTitle').value.split('/').map(s=>s.trim()).filter(Boolean).join('\n') || DEFAULT_SETTINGS.title;
+  settings.sub = $('sSub').value.trim();
+  settings.quizSec = Math.max(10, Math.min(600, parseInt($('sSec').value)||60));
+  settings.quizCount = Math.max(1, Math.min(50, parseInt($('sCnt').value)||10));
+  settings.shuffle = $('sShuf').checked;
+  settings.shuffleOpts = $('sShufO').checked;
+  settings.confirmSubmit = $('sConf').checked;
+  settings.pin = $('sPin').value.trim() || '1234';
+  LS.set('hc_settings', settings);
+  applyTexts(); toast('✅ 설정 저장 완료'); renderSAdmin();
+}
+
+/* ---- records ---- */
+function renderRAdmin(){
+  const sorted = [...records].sort((a,b)=> b.score-a.score || a.time-b.time);
+  $('adminBody').innerHTML = `
+  <div class="toolbar">
+    <span style="color:var(--muted)">정렬: 점수 높은 순 → 기록 빠른 순</span><span style="flex:1"></span>
+    <button class="sbtn blue" onclick="exportRecords()">📥 기록 엑셀 다운로드</button>
+    <button class="sbtn danger" onclick="if(confirmInline(this)){records=[];LS.set('hc_records',[]);renderRAdmin();}">기록 전체 삭제</button>
+  </div>
+  ${sorted.length ? `<table><thead><tr><th>순위</th><th>이름</th><th>최종 기록</th><th>퀴즈 점수</th><th>일시</th></tr></thead><tbody>
+    ${sorted.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td class="mono">${fmtStr(r.time)}</td><td>${r.score} / ${r.total}</td><td style="color:var(--muted)">${r.at}</td></tr>`).join('')}
+  </tbody></table>` : `<p style="color:var(--muted)">아직 기록이 없습니다.</p>`}`;
+}
+function exportRecords(){
+  const sorted = [...records].sort((a,b)=> b.score-a.score || a.time-b.time);
+  const rows = [['순위','이름','최종 기록','기록(초)','퀴즈 점수','문항 수','일시'],
+    ...sorted.map((r,i)=>[i+1, r.name, fmtStr(r.time), +(r.time/1000).toFixed(2), r.score, r.total, r.at])];
+  if (typeof XLSX!=='undefined'){
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), '기록');
+    XLSX.writeFile(wb, '경진대회_기록.xlsx');
+  } else downloadRows(rows, '경진대회_기록');
+}
+
+/* ================= Init ================= */
+applyTexts();
+renderStatus();
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && S.running) requestWakeLock(); });
+window.addEventListener('beforeunload', e=>{ if(S.running){ e.preventDefault(); e.returnValue=''; } });
+</script>
+</body>
+</html>
